@@ -1,0 +1,220 @@
+%% 3 actuators
+clear all; close all; clc;
+
+% Constantes:
+Tmax=80;
+g=9.81; k1=0.1; k2=0.2; l1=1; l2=2.3; m1=0.1; m2=0.1; yr=0.5; tetar=pi/10;
+
+% Declarar variables simbólicas
+syms x11(t) % teta1
+syms x12(t) % dteta1
+syms x21(t) % teta2
+syms x22(t) % dteta2
+syms x23(t) % d2teta1
+syms x24(t) % d2teta2
+syms x25(t) % lambda
+syms x21d(t) % teta2d
+syms x22d(t) % dteta2d
+syms x24d(t) % d2teta3d
+
+% Ecuacion dinamica 1:
+din1 = diff(x11(t)) == x12(t);
+
+% Ecuacion dinamica 2:
+din2 = diff(x12(t)) == x23(t);
+
+% 1) Restricción de posiciones
+alg1 = l1*sin(x11(t)) + l2*sin(x11(t) + x21(t)) - yr - (l1*cos(x11(t)) + l2*cos(x11(t) + x21(t)))*tan(tetar) == 0;
+peq1_pq=lhs(jacobian(alg1,[x11(t); x21(t)]).');
+
+% 2) Restricción de velocidades
+alg2 = diff(alg1,t); 
+alg2=subs(alg2,diff(x11(t)),x12(t));
+alg2=subs(alg2,diff(x12(t)),x23(t));
+alg2=subs(alg2,diff(x21(t)),x22(t));
+alg2=subs(alg2,diff(x22(t)),x24(t));
+
+% 3) Restricción de aceleraciones
+alg3 = diff(alg2,t); 
+alg3=subs(alg3,diff(x11(t)),x12(t));
+alg3=subs(alg3,diff(x12(t)),x23(t));
+alg3=subs(alg3,diff(x21(t)),x22(t));
+alg3=subs(alg3,diff(x22(t)),x24(t));
+
+% Restricción de posiciones deseadas (que induce trayectoria deseada para
+% teta2=x21
+x11d = -1.6+0.1*sin(0.1*t)+0.07*cos(0.5*t)+0.05*sin(t);
+eqd2 = l1*sin(x11d) + l2*sin(x11d + x21d(t)) - yr - (l1*cos(x11d) + l2*cos(x11d + x21d(t)))*tan(tetar) == 0;
+
+% Derivada de las posiciones deseadas (velocidades):
+eqd3 = diff(eqd2, t);
+eqd3=subs(eqd3,diff(x21d(t)),x22d(t));
+
+% Derivada de las velocidades deseadas (aceleraciones):
+eqd4 = diff(eqd3, t);
+eqd4=subs(eqd4,diff(x21d(t)),x22d(t));
+eqd4=subs(eqd4,diff(x22d(t)),x24d(t));
+
+qd=[x11d; x21d(t)];
+dqd=[diff(x11d,t); x22d(t)];
+d2qd=[diff(x11d,t,t); x24d(t)];
+
+% Errores de seguimiento y derivadas
+e1=qd-[x11(t); x21(t)];
+e2=dqd-[x12(t); x22(t)];
+
+% Control realimentado de errores:
+
+Kd=-[-1.0045   -0.8645; -0.8894   -1.5385]; Kp=-[-0.7972   -0.2207; -0.1625   -0.9656];
+u=-Kp*e1-Kd*e2;
+
+% Matriz de inercia:
+Mq=[((m1 + m2)*l1^2 + m2*l2^2 + 2*m2*l1*l2*cos(x21(t))) (m2*l2^2 + m2*l1*l2*cos(x21(t)));
+    (m2*l2^2 + m2*l1*l2*cos(x21(t))) m2*l2^2];
+
+% Vector de Coriolis:
+Vq=[- m2*l1*l2*(2*x12(t)*x22(t) + x22(t)^2)*sin(x21(t)); 
+    m2*l1*l2*x12(t)^2*sin(x21(t))];
+
+% Vector de gravedad:
+Gq=[(m1 + m2)*g*l1*cos(x11(t)) + m2*g*l2*cos(x11(t) + x21(t)); 
+    m2*g*l2*cos(x11(t) + x21(t))];
+
+% Vector de fricción:
+Fq=[k1*x12(t); k2*x22(t)];
+
+% Fuerzas de reacción:
+Rq=[- x25(t)*peq1_pq(1); - x25(t)*peq1_pq(2)];
+
+% Par generalizado:
+tau_gen = Vq+Gq+Fq+Rq+Mq*(d2qd-u);
+
+Tau2=tau_gen(2)/2;
+f=(tau_gen(2)-Tau2)/(-cos(tetar)*l2*sin(x11(t) + x21(t)) + sin(tetar)*l2*cos(x11(t) + x21(t)));
+tau=tau_gen(1)-f*(cos(tetar)*(l1*sin(x11(t)) + l2*sin(x11(t) + x21(t))) + sin(tetar)*(l1*cos(x11(t)) + l2*cos(x11(t) + x21(t))));
+
+
+
+% tau=0; f=0;
+% 4) Primera ecuación de Euler-Lagrange
+alg4 = ((m1 + m2)*l1^2 + m2*l2^2 + 2*m2*l1*l2*cos(x21(t)))*x23(t) ...
+    + (m2*l2^2 + m2*l1*l2*cos(x21(t)))*x24(t) ...
+    - m2*l1*l2*(2*x12(t)*x22(t) + x22(t)^2)*sin(x21(t)) ...
+    + (m1 + m2)*g*l1*cos(x11(t)) + m2*g*l2*cos(x11(t) + x21(t)) ...
+    + k1*x12(t) ...
+    - x25(t)*peq1_pq(1) ...
+    - tau + f*cos(tetar)*(l1*sin(x11(t)) + l2*sin(x11(t) + x21(t))) - f*sin(tetar)*(l1*cos(x11(t)) + l2*cos(x11(t) + x21(t))) == 0;
+
+% 5) Segunda ecuación de Euler-Lagrange
+alg5 = (m2*l2^2 + m2*l1*l2*cos(x21(t)))*x23(t) ...
+    + m2*l2^2*x24(t) + m2*l1*l2*x12(t)^2*sin(x21(t)) ...
+    + m2*g*l2*cos(x11(t) + x21(t)) ...
+    + k2*x22(t) ...
+    - x25(t)*peq1_pq(2) ...
+    - Tau2 + f*cos(tetar)*l2*sin(x11(t) + x21(t)) - f*sin(tetar)*l2*cos(x11(t) + x21(t)) == 0;
+
+% Mostrar ecuaciones
+eqns = [din1; din2; alg1; alg2; alg3; alg4; alg5; eqd2; eqd3; eqd4];
+vars = [x11(t) x12(t) x21(t) x22(t) x23(t) x24(t) x25(t) x21d(t) x22d(t) x24d(t)];
+
+% Comprobando que es indice bajo: debe devolver 1
+isLowIndexDAE(eqns,vars) % SI LO ES!!!
+
+% Creacion del handler:
+pDAEs = symvar(eqns);
+pDAEvars = symvar(vars);
+extraParams = setdiff(pDAEs,pDAEvars) % Parametros por definir
+fn = daeFunction(eqns,vars);
+
+% Creacion del handler especifico para los parametros:
+F = @(t,Y,YP) fn(t,Y,YP);
+
+% Condiciones iniciales de posicion y velocidad:
+y0est=zeros(numel(vars),1);
+y0est(1)=-1.7398420132345511213145528017776;
+yp0est=zeros(numel(vars),1);
+
+% Opciones para simulacion:
+opt = odeset('RelTol', 10.0^(-7),'AbsTol',10.0^(-7));
+
+% Determinando condiciones iniciales sin fijar ninguna:
+[y0,yp0] = decic(F,0,y0est,[1 zeros(1,numel(y0est)-1)],yp0est,[],opt);
+
+% Simulacion por 10 segundos:
+[tSol,ySol] = ode15i(F,[0 Tmax],y0,yp0,opt);
+
+% Animacion:
+figure;
+axis equal
+hold on
+grid on
+xlabel('X')
+ylabel('Y')
+title('Animación del sistema con restricciones')
+axis([-(l1+l2) (l1+l2) -(l1+l2) (l1+l2)]) % ventana gráfica
+
+x=-(l1+l2):2*(l1+l2)/100:(l1+l2);
+y=tan(tetar)*x+yr;
+
+for k = 1:10:length(tSol)
+    % Ángulos en el instante k
+    th1 = ySol(k,1);   % x11(t)
+    th2 = ySol(k,3);   % x21(t)
+
+    % Posiciones de los puntos
+    P0 = [0 0];
+    P1 = [l1*cos(th1) , l1*sin(th1) ];
+    P2 = P1 + [l2*cos(th1+th2), l2*sin(th1+th2) ];
+
+    % Dibujar
+    cla;
+    plot(x,y);
+    plot([P0(1) P1(1)], [P0(2) P1(2)], 'r-o','LineWidth',2,'MarkerSize',6)
+    plot([P1(1) P2(1)], [P1(2) P2(2)], 'b-o','LineWidth',2,'MarkerSize',6)
+    plot(P2(1),P2(2),'ko','MarkerSize',4,'MarkerFaceColor','k') % extremo
+
+    % Texto con tiempo
+    text(-l1, l1, sprintf('t = %.2f s',tSol(k)))
+
+    drawnow
+    if k < length(tSol)
+    pause(tSol(k+1)-tSol(k));
+end
+end
+
+figure
+plot(tSol,ySol(:,1)); hold on; grid on; 
+    ezplot(-1.6+0.1*sin(0.1*t)+0.07*cos(0.5*t)+0.05*sin(t),[0 80]);
+
+
+fig=figure;
+fig.Position = [60 500 560 430];
+Fuente_tam=13;
+Fuente_legend=13;
+
+subplot(2,1,1);hold on; grid on;
+plot(tSol,ySol(:,1),'LineWidth',2,'color','red','LineStyle','-')
+hold on; grid on; 
+
+tt=0:0.5:80;
+funcionqd=-1.6+0.1.*sin(0.1.*tt)+0.07.*cos(0.5.*tt)+0.05.*sin(tt);
+
+plot(tt,funcionqd,'LineWidth',2,'color','black','LineStyle','-')
+set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
+legend({'$\theta_1(t)$','$\theta_{d1}(t)$'},'interpreter','Latex','FontSize',Fuente_legend,'FontName','Times New Roman','Location','northeast');
+yl=ylabel('Radians','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+subplot(2,1,2);hold on; grid on;
+plot(tSol,ySol(:,3),'LineWidth',2,'color','red','LineStyle','-')
+hold on; grid on; 
+
+plot(tSol,ySol(:,8),'LineWidth',2,'color','black','LineStyle','-')
+set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
+legend({'$\theta_2(t)$','$\theta_{d2}(t)$'},'interpreter','Latex','FontSize',Fuente_legend,'FontName','Times New Roman','Location','northeast');
+yl=ylabel('Radians','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+print('-depsc','fig_track_c1_red')
