@@ -28,14 +28,14 @@ alg1 = l1*sin(x11(t)) + l2*sin(x11(t) + x21(t)) - yr - (l1*cos(x11(t)) + l2*cos(
 peq1_pq=lhs(jacobian(alg1,[x11(t); x21(t)]).');
 
 % 2) Restricción de velocidades
-alg2 = diff(alg1,t); 
+alg2 = diff(alg1,t);
 alg2=subs(alg2,diff(x11(t)),x12(t));
 alg2=subs(alg2,diff(x12(t)),x23(t));
 alg2=subs(alg2,diff(x21(t)),x22(t));
 alg2=subs(alg2,diff(x22(t)),x24(t));
 
 % 3) Restricción de aceleraciones
-alg3 = diff(alg2,t); 
+alg3 = diff(alg2,t);
 alg3=subs(alg3,diff(x11(t)),x12(t));
 alg3=subs(alg3,diff(x12(t)),x23(t));
 alg3=subs(alg3,diff(x21(t)),x22(t));
@@ -73,11 +73,11 @@ Mq=[((m1 + m2)*l1^2 + m2*l2^2 + 2*m2*l1*l2*cos(x21(t))) (m2*l2^2 + m2*l1*l2*cos(
     (m2*l2^2 + m2*l1*l2*cos(x21(t))) m2*l2^2];
 
 % Vector de Coriolis:
-Vq=[- m2*l1*l2*(2*x12(t)*x22(t) + x22(t)^2)*sin(x21(t)); 
+Vq=[- m2*l1*l2*(2*x12(t)*x22(t) + x22(t)^2)*sin(x21(t));
     m2*l1*l2*x12(t)^2*sin(x21(t))];
 
 % Vector de gravedad:
-Gq=[(m1 + m2)*g*l1*cos(x11(t)) + m2*g*l2*cos(x11(t) + x21(t)); 
+Gq=[(m1 + m2)*g*l1*cos(x11(t)) + m2*g*l2*cos(x11(t) + x21(t));
     m2*g*l2*cos(x11(t) + x21(t))];
 
 % Vector de fricción:
@@ -178,13 +178,13 @@ for k = 1:10:length(tSol)
 
     drawnow
     if k < length(tSol)
-    pause(tSol(k+1)-tSol(k));
-end
+        pause(tSol(k+1)-tSol(k));
+    end
 end
 
 figure
-plot(tSol,ySol(:,1)); hold on; grid on; 
-    ezplot(-1.6+0.1*sin(0.1*t)+0.07*cos(0.5*t)+0.05*sin(t),[0 80]);
+plot(tSol,ySol(:,1)); hold on; grid on;
+ezplot(-1.6+0.1*sin(0.1*t)+0.07*cos(0.5*t)+0.05*sin(t),[0 80]);
 
 
 fig=figure;
@@ -194,7 +194,7 @@ Fuente_legend=13;
 
 subplot(2,1,1);hold on; grid on;
 plot(tSol,ySol(:,1),'LineWidth',2,'color','red','LineStyle','-')
-hold on; grid on; 
+hold on; grid on;
 
 tt=0:0.5:80;
 funcionqd=-1.6+0.1.*sin(0.1.*tt)+0.07.*cos(0.5.*tt)+0.05.*sin(tt);
@@ -208,7 +208,7 @@ xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Time
 
 subplot(2,1,2);hold on; grid on;
 plot(tSol,ySol(:,3),'LineWidth',2,'color','red','LineStyle','-')
-hold on; grid on; 
+hold on; grid on;
 
 plot(tSol,ySol(:,8),'LineWidth',2,'color','black','LineStyle','-')
 set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
@@ -217,4 +217,116 @@ yl=ylabel('Radians','interpreter','Latex','FontSize',Fuente_tam,'FontName','Time
 
 xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
 
-print('-depsc','fig_track_c1_red')
+%print('-depsc','fig_track_c1_red')
+
+
+clear din1 din2 alg1 alg2 alg3 x11d eqd2 eqd3 eqd4 peq1_pq qd dqd d2qd e1 e2 u Mq Vq Gq Fq Rq tau_gen f tau
+  
+
+din1 = ySol(:,2);
+
+% Ecuacion dinamica 2:
+din2 = ySol(:,5);
+
+% 1) Restricción de posiciones
+alg1 = l1.*sin(ySol(:,1)) + l2.*sin(ySol(:,1) + ySol(:,3)) - yr - (l1.*cos(ySol(:,1)) + l2.*cos(ySol(:,1) + ySol(:,3))).*tan(tetar);
+
+
+% 2) Restricción de velocidades
+alg2 = (23.*cos(ySol(:,1) + ySol(:,3)).*(ySol(:,2) + ySol(:,4)))./10 + (67312178252473169.*sin(ySol(:,1) + ySol(:,3)).*(ySol(:,2) + ySol(:,4)))./90071992547409920 + cos(ySol(:,1)).*ySol(:,2) + (2926616445759703*sin(ySol(:,1)).*ySol(:,2))/9007199254740992; 
+
+
+% 3) Restricción de aceleraciones
+alg3 = (23.*cos(ySol(:,1) + ySol(:,3)).*(ySol(:,5) + ySol(:,6)))./10 - sin(ySol(:,1)).*ySol(:,2).^2 + (67312178252473169.*sin(ySol(:,1) + ySol(:,3)).*(ySol(:,5) + ySol(:,6)))./90071992547409920 + (67312178252473169.*cos(ySol(:,1) + ySol(:,3)).*(ySol(:,2) + ySol(:,4)).^2)./90071992547409920 + cos(ySol(:,1)).*ySol(:,5) - (23.*sin(ySol(:,1) + ySol(:,3)).*(ySol(:,2) + ySol(:,4)).^2)./10 + (2926616445759703.*sin(ySol(:,1)).*ySol(:,5))./9007199254740992 + (2926616445759703.*cos(ySol(:,1)).*ySol(:,2).^2)./9007199254740992;
+
+% Restricción de posiciones deseadas (que induce trayectoria deseada para
+% teta2=x21
+x11d = -1.6+0.1.*sin(0.1.*tSol)+0.07.*cos(0.5.*tSol)+0.05.*sin(tSol);
+eqd2 = l1.*sin(x11d) + l2*sin(x11d + ySol(:,8)) - yr - (l1.*cos(x11d) + l2.*cos(x11d + ySol(:,8))).*tan(tetar);
+
+% Derivada de las posiciones deseadas (velocidades):
+eqd3 = (23.*cos((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20 + ySol(:,9)))/10 + (67312178252473169*sin((7*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20 + ySol(:,9)))/90071992547409920 + cos((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*(cos(tSol/10)/100 - (7*sin(tSol/2))/200 + cos(tSol)/20) + (2926616445759703.*sin((7*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20))/9007199254740992;
+
+% Derivada de las velocidades deseadas (aceleraciones):
+eqd4 = (67312178252473169.*cos((7*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20 + ySol(:,9)).^2)/90071992547409920 - (2926616445759703.*sin((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*((7.*cos(tSol/2))/400 + sin(tSol/10)/1000 + sin(tSol)/20))/9007199254740992 - cos((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*((7.*cos(tSol/2))/400 + sin(tSol/10)/1000 + sin(tSol)/20) - (23.*cos((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*((7*cos(tSol/2))/400 + sin(tSol/10)/1000 + sin(tSol)/20 - ySol(:,10)))/10 - (23.*sin((7*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20 + ySol(:,9)).^2)/10 - (67312178252473169.*sin((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 + ySol(:,8) - 8/5).*((7.*cos(tSol/2))/400 + sin(tSol/10)/1000 + sin(tSol)/20 - ySol(:,10)))/90071992547409920 + (2926616445759703.*cos((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20).^2)/9007199254740992 - sin((7.*cos(tSol/2))/100 + sin(tSol/10)/10 + sin(tSol)/20 - 8/5).*(cos(tSol/10)/100 - (7.*sin(tSol/2))/200 + cos(tSol)/20).^2;
+
+for i=1:length(tSol)
+peq1_pq{i}=[cos(ySol(i,1)) + (2926616445759703.*sin(ySol(i,1)))/9007199254740992 + (23.*cos(ySol(i,1) + ySol(i,3)))./10 + (67312178252473169.*sin(ySol(i,1) + ySol(i,3)))./90071992547409920
+                                                                (23.*cos(ySol(i,1) + ySol(i,3)))./10 + (67312178252473169.*sin(ySol(i,1) + ySol(i,3)))./90071992547409920];
+
+qd{i}=[x11d(i); ySol(i,8)];
+dqd{i}=[cos(tSol(i)/10)/100 - (7*sin(tSol(i)/2))/200 + cos(tSol(i))/20; ySol(i,9)];
+d2qd{i}=[- (7*cos(tSol(i)/2))/400 - sin(tSol(i)/10)/1000 - sin(tSol(i))/20; ySol(i,10)];
+
+e1{i}=qd{i}-[ySol(i,1); ySol(i,3)];
+e2{i}=dqd{i}-[ySol(i,2); ySol(i,4)];
+
+Kd=-[-1.0045   -0.8645; -0.8894   -1.5385]; Kp=-[-0.7972   -0.2207; -0.1625   -0.9656];
+u{i}=-Kp*e1{i}-Kd*e2{i};
+
+Mq{i}=[((m1 + m2)*l1^2 + m2*l2^2 + 2*m2*l1*l2*cos(ySol(i,3))) (m2*l2^2 + m2*l1*l2*cos(ySol(i,3)));
+    (m2*l2^2 + m2*l1*l2*cos(ySol(i,3))) m2*l2^2];
+
+Vq{i}=[- m2*l1*l2*(2*ySol(i,2)*ySol(i,4) + ySol(i,4)^2)*sin(ySol(i,3)); 
+    m2*l1*l2*ySol(i,2)^2*sin(ySol(i,3))];
+
+Gq{i}=[(m1 + m2)*g*l1*cos(ySol(i,1)) + m2*g*l2*cos(ySol(i,1) + ySol(i,3)); 
+    m2*g*l2*cos(ySol(i,1) + ySol(i,3))];
+
+% Vector de fricción:
+Fq{i}=[k1*ySol(i,2); k2*ySol(i,4)];
+
+% Fuerzas de reacción:
+Rq{i}=[- ySol(i,7)*peq1_pq{i}(1); - ySol(i,7)*peq1_pq{i}(2)];
+
+% Par generalizado:
+tau_gen{i} = Vq{i}+Gq{i}+Fq{i}+Rq{i}+Mq{i}*(d2qd{i}-u{i});
+Tau2(i)=tau_gen{i}(2)/2;
+f(i)=tau_gen{i}(2)/(-cos(tetar)*l2*sin(ySol(i,1) + ySol(i,3)) + sin(tetar)*l2*cos(ySol(i,1) + ySol(i,3)));
+tau(i)=tau_gen{i}(1)-f(i)*(cos(tetar)*(l1*sin(ySol(i,1)) + l2*sin(ySol(i,1) + ySol(i,3))) + sin(tetar)*(l1*cos(ySol(i,1)) + l2*cos(ySol(i,1) + ySol(i,3))));
+end
+
+
+fig2=figure;
+fig2.Position = [60 500 560 430];
+Fuente_tam=13;
+Fuente_legend=13;
+
+
+%set(figure,'Name','resp1');
+
+subplot(3,1,1);hold on; grid on;
+plot(tSol,tau,'LineWidth',2,'color','black','LineStyle','-')
+hold on; grid on; 
+
+set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
+%legend({'$\tau_1$'},'interpreter','Latex','FontSize',Fuente_legend,'FontName','Times New Roman','Location','northeast');
+yl=ylabel('$\tau_1$','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+% set(yl, 'Units', 'Normalized', 'Position', [-yl_coor_x, yl_coor_y, 0]);
+
+
+xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+subplot(3,1,2);hold on; grid on;
+plot(tSol,Tau2,'LineWidth',2,'color','black','LineStyle','-')
+hold on; grid on; 
+
+set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
+%legend({'$\tau_1$'},'interpreter','Latex','FontSize',Fuente_legend,'FontName','Times New Roman','Location','northeast');
+yl=ylabel('$\tau_2$','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+% set(yl, 'Units', 'Normalized', 'Position', [-yl_coor_x, yl_coor_y, 0]);
+
+
+xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+
+subplot(3,1,3);hold on; grid on;
+plot(tSol,f,'LineWidth',2,'color','black','LineStyle','-')
+hold on; grid on; 
+
+set(gca,'FontSize',Fuente_tam,'FontName','Times New Roman','box','on');
+%legend({'$\theta_2(t)$','$\theta_{d2}(t)$'},'interpreter','Latex','FontSize',Fuente_legend,'FontName','Times New Roman','Location','northeast');
+yl=ylabel('$f$','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
+% set(yl, 'Units', 'Normalized', 'Position', [-yl_coor_x, yl_coor_y, 0]);
+
+
+xl=xlabel('Time(s)','interpreter','Latex','FontSize',Fuente_tam,'FontName','Times New Roman');
