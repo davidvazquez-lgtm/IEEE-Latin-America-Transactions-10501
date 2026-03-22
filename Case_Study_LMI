@@ -1,0 +1,26 @@
+clc; clear;
+n = 2;
+
+% Variables de decisión
+X = sdpvar(2*n);
+N = sdpvar(n, 2*n);
+
+% Sistema (doble integrador)
+A = [zeros(n,n) eye(n); zeros(n,n) zeros(n,n)];
+B = [zeros(n,n); eye(n)];
+
+% LMI de estabilidad
+LMI = [];
+LMI = [LMI; X >= 1e-3*eye(2*n)];
+LMI = [LMI; A*X + B*N + (A*X + B*N)' <= -1e-1*eye(2*n)];
+LMI = [LMI; X(1,1) >= X(2,2) + 1e-3];
+LMI = [LMI; X(1,2) <= -5];
+LMI = [LMI; X(1,2) >= -7];
+
+% Configuración del solver
+opts = sdpsettings('solver','lmilab','verbose',1);
+SolLMI = optimize(LMI, [], opts);
+
+X_opt = value(X)
+N_opt = value(N)
+K = N_opt * inv(X_opt)
