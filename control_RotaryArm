@@ -1,0 +1,48 @@
+function [tau, tau2, x11d, x21d] = control_RotaryArm(theta1, dtheta1, theta2, dtheta2, t)
+
+% Parámetros físicos
+par = [0.0363 0.0306 0.0356 0.0260 0.3829];
+k1 = 0.1; 
+
+% Control realimentado de errores:
+Kp=-238.1234; 
+
+Kd=-22.2786; 
+
+% Trayectorias deseadas
+x11d = - 0.5*sin(4*t); 
+
+qd   = - 0.5*sin(4*t);
+dqd  = -2*cos(4*t);
+d2qd = 8*sin(4*t);
+
+% Estados actuales
+q  = theta1;
+dq = dtheta1;
+
+% Errores de seguimiento
+e1 = qd - q;
+e2 = dqd - dq;
+
+u=-Kp*e1-Kd*e2;
+
+% Matriz de inercia:
+Mq = (par(2)*(sin(theta2))^2 + par(1));
+
+% Matriz H:
+Hq = 2*par(2)*dtheta1*dtheta2*cos(theta2)*sin(theta2);
+
+% Matriz O:
+Oq = (par(4)*cos(theta2)) - par(4)*((dtheta2)^2)*sin(theta2);
+
+% Vector de fricción:
+Fq=k1*dtheta1;
+
+% Ley de control (Computed Torque)
+tau = Hq  + Oq +  Fq + Mq*(d2qd+u);
+
+% Salidas separadas
+
+tau2 = 0;
+x21d = pi;
+end
